@@ -31,27 +31,15 @@ int read_ascii_lat(char *fname, gauge_field &U) {
       for(z=0; z<Nz; z++)
 	 for(y=0; y<Ny; y++)
 	    for(x=0; x<Nx; x++) {
-	       //      ### need to set a site for U(x)(a,b)
-
-	       // Why t,x,y,z ?
-	       //	       siteX.set(t,x,y,z);
-	       //	       cout <<  "set siteX: " <<t<<" "<<x<<" "<<y<<" "<<z<<endl;
-
 	       siteX.set(x,y,z,t);
-	       //	       cout <<  "set siteX: " <<x<<" "<<y<<" "<<z<<" "<<t<<endl;
-
 	       for(dir=0; dir<4; dir++) {
-		  //		  cout << "dir: "<< dir << endl;
-		  // get x= y= z= t= line
-		  //		     fscanf(fp,"%s\n", line);
-		  if (fgets(line, 100, fp) != NULL) {
-		     //		     cout <<"x= line: "<< line << endl;
-		     //		     break;
-		  }
                   //read a link
 		  for(a=0; a<3; a++) for(b=0; b<3; b++) {
 		     fscanf(fp,"%e %e\n", &Ur, &Ui);
 		     M(a,b) = mdp_complex(Ur, Ui);
+		     //		     if(i==0) {
+		     //			printf("coords %d %d %d %d dir %d Ur: %f Ui: %f\n", x,y,z,t,dir,Ur, Ui);
+		     //			L[t][z][y][x][dir] = Ur + I*Ui;
 		  }
 		  //		  cout << M << endl;
 		  U(siteX, dir) = M;
@@ -60,5 +48,6 @@ int read_ascii_lat(char *fname, gauge_field &U) {
    }
 
    fclose(fp);
-   return 0;
+
 }
+		  

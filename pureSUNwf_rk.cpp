@@ -1,7 +1,7 @@
 #include "fermiqcd.h"              
 
 #include "ploop3.cpp"
-#include "wilsonflow.cpp"
+#include "wilsonflow_rk.cpp"
 #include "readmilcascii.cpp"
 
 // for KH's lattice output format
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
 
 
 
-  // Setup Lattice and initialize /////////////////////////
+  // Lattice Fields and Parameters /////////////////////////
   
   if(!verbose)  mdp.print=false;  // eventualy print off
   mdp_lattice   lattice(ndim,L); // declare lattice
@@ -142,6 +142,9 @@ int main(int argc, char** argv) {
   gauge["beta"]=beta;            // set beta
 
 
+
+  // Initialize Lattice ////////////////////////////////////////
+
   if(mode==2) {
     mdp_field_file_header header;
     if(is_file(input)) header=get_info(input);
@@ -151,8 +154,6 @@ int main(int argc, char** argv) {
     for(i=0; i<ndim; i++) L[i]=header.box[i];
   }
 
-
-  // set initial gauge field
   switch(mode) {  
     case 0:set_cold(U); break;
     case 1:set_hot(U); break;       
@@ -217,7 +218,9 @@ int main(int argc, char** argv) {
      cout <<"----------------------------"<<endl;
   }
 
-
+  /////////////////////////////////////////////////////////////
+  // Start Simulation
+  /////////////////////////////////////////////////////////////
 
   // Inital Measurement ///////////////////////////////////
   plaq = average_plaquette(U);
@@ -227,6 +230,16 @@ int main(int argc, char** argv) {
 	  <<" "<< aveP.real() <<" "<< aveP.imag() << endl;
   }
 
+
+  /* 
+  load_staples_alldirs(U, S);
+  for(mu=0; mu<4; mu++) {
+     forallsites(x) {
+	cout <<"S: "<< x(0) <<" "<< x(1) <<" "<< x(2) <<" "<< x(3) <<", "<< mu <<endl;
+	cout << S(x,mu);
+     }
+  }
+  */
 
 
   // Thermalize ///////////////////////////////////////////
@@ -247,7 +260,7 @@ int main(int argc, char** argv) {
 
   // Do the measurement trajectories ////////////////////
   for(i=1; i<=trajecs; i++) {
-     WilsonGaugeAction::heatbath(U,gauge,1); //heatbath 
+     //     WilsonGaugeAction::heatbath(U,gauge,1); //heatbath 
 
      // Measurements ////////////////////////////////////
      if(i%meas==0) {
@@ -279,17 +292,18 @@ int main(int argc, char** argv) {
 	// Wilson Flow module
 	if(wf_Tmax > 0) { if(ME==0) { cout<<"Starting Wilson Flow Module"<<endl; }}
 
-	pWFin = &U;  // first time
-	pWFout = &WF2;
+	forallsites(x) for(mu=0; mu<WF1.ndim; mu++) { WF1(x,mu) = U(x,mu); }
 	while((wf_Tmax > 0) && (wf_T <= wf_Tmax)) {
 
-	   wilsonFlow(*pWFin, *pWFout, S, wf_t, wf_expn);
+	   //	   wilsonFlow_RK(WF1, T1, S, wf_t);
+	   cout << "STOUT SMEAR" <<endl;
+	   stoutSmear(WF1, T1, S, 1, 0.01);
 	   wf_T += wf_t;
 
-	   plaq = average_plaquette(*pWFout);
+	   plaq = average_plaquette(WF1);
 	   if(ME==0) { cout <<"WF_MEAS "<< beta <<" "<< wf_T <<" "<< plaq <<endl; }
 
-	   // Save Wn(x,mu) lattice every 'wf_savestep' in wf_T
+	   // Save WF(x,mu) lattice every 'wf_savestep' in wf_T
 	   if((wf_savestep>0) && (fmod(wf_T,wf_savestep)==0)) {
 	      if(strlen(output)==0) { sprintf(output,"fqcdlattice"); }
 	      if(saveformat==0) {
@@ -303,45 +317,13 @@ int main(int argc, char** argv) {
 	      }
 	      if(ME==0) cout <<"Saving WF lattice at time T= "<< wf_T <<" in file: "
 			     << latfile <<endl;
-	      (*pWFout).save(latfile);      // save file
+	      WF1.save(latfile);      // save file
 	   }
-
-	   // now the other way: input W2, output W1
-	   pWFin = &WF2;
-	   pWFout = &WF1;
-
-	   wilsonFlow(*pWFin, *pWFout, S, wf_t, wf_expn);
-	   wf_T += wf_t;
-
-	   plaq = average_plaquette(*pWFout);
-	   if(ME==0) { cout <<"WF_MEAS "<< beta <<" "<< wf_T <<" "<< plaq <<endl; }
-
-	   // Save Wn(x,mu) lattice every 'wf_savestep' in wf_T
-	   if((wf_savestep>0) && (fmod(wf_T,wf_savestep)==0)) {
-	      if(strlen(output)==0) { sprintf(output,"fqcdlattice"); }
-	      if(saveformat==0) {
-		 sprintf(latfile,"wfT%.2ft%1.2f%s.%d",wf_T, wf_t, output,i);
-	      } else if(saveformat==1) {
-		 time(&rawtime);
-		 timeinfo = localtime(&rawtime);
-		 strftime (timestamp,80,".%G%m%d%H%M%S",timeinfo);
-		 sprintf(latfile,"wfT%.2ft%1.2f%s",wf_T, wf_t, output);
-		 strcat(latfile,timestamp);
-	      }
-	      if(ME==0) cout <<"Saving WF lattice at time T= "<< wf_T <<" in file: "
-			     << latfile <<endl;
-	      (*pWFout).save(latfile);      // save file
-	   }
-
-	   // reset for next loop: input W1, output W2
-	   pWFin = &WF1;
-	   pWFout = &WF2;
 
 	} // end Wilson Flow Module
-
      } // end MEASurement
-
   } // end Trajecs
+
 
   //// To save the final lattice, -savestep = -trajecs
   // Output lattice //////////////////////////////////////
