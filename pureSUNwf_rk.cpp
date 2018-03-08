@@ -130,6 +130,7 @@ int main(int argc, char** argv) {
 
   // for the Staples (all dirs)
   mdp_nmatrix_field  S(lattice,U.ndim,U.nc,U.nc);
+  mdp_nmatrix_field  Tmp(lattice,U.ndim,U.nc,U.nc);
 
   // for the Wilson Flow
   gauge_field	WF1(lattice,nc);
@@ -241,6 +242,21 @@ int main(int argc, char** argv) {
   }
   */
 
+  /*
+  stoutSmear(U, Tmp, S, 0.5, 1);
+  plaq = average_plaquette(U);
+  cout << "plaq: " << plaq << endl;
+  exit(0);
+  */
+
+  for(int ii=0; ii<20; ii++) {
+     wilsonFlow_RK(U, Tmp, S, 0.01);
+     plaq = average_plaquette(U);
+     cout << "plaq: " << plaq << endl;
+  }
+  exit(0);
+
+
 
   // Thermalize ///////////////////////////////////////////
   for(i=0; i<warms; i++) {
@@ -296,8 +312,8 @@ int main(int argc, char** argv) {
 	while((wf_Tmax > 0) && (wf_T <= wf_Tmax)) {
 
 	   //	   wilsonFlow_RK(WF1, T1, S, wf_t);
-	   cout << "STOUT SMEAR" <<endl;
-	   stoutSmear(WF1, T1, S, 1, 0.01);
+	   //	   cout << "STOUT SMEAR" <<endl;
+	   //	   stoutSmear(WF1, T1, S, 1, 0.01);
 	   wf_T += wf_t;
 
 	   plaq = average_plaquette(WF1);

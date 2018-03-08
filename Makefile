@@ -16,12 +16,16 @@ CC     = mpic++ -I../Libraries
 # Flags for parallel (mpi) double precision and sse
 #CFLAGS = -DPARALLEL -DLINUX -DUSE_DOUBLE_PRECISION -DSSE2 -O2
 # -Wno-write-strings suppresses depricated "conversion from string constant to ‘char*’" warning
-CFLAGS = -DPARALLEL -DLINUX -O2 -Wno-write-strings
+CFLAGS = -DPARALLEL -DLINUX -O2 -g -Wno-write-strings
 
 
 # Heat bath SU(N) with Polyakov loop measurements
 pureSUN:: pureSUN.cpp ploop3.cpp
 	${CC} ${CFLAGS} pureSUN.cpp -o pureSUN
+
+# Heat bath SU(N) with Wilson flow
+pureSUNwf_rk:: pureSUNwf_rk.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp
+	${CC} ${CFLAGS} pureSUNwf_rk.cpp -o pureSUNwf_rk
 
 
 # Heat bath SU(N) with Wilson flow

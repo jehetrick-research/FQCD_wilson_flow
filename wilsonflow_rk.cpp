@@ -42,64 +42,68 @@ int load_staples_alldirs(gauge_field &W, mdp_nmatrix_field &S) {
 // Stout Smearing, a la MILC
 // Tmp is an "accumulator field for the AH projection
 //
-void stoutSmear(gauge_field &W1, mdp_matrix_field &Tmp, mdp_nmatrix_field &S, float c1, float c2) {
+void stoutSmear(gauge_field &W, mdp_nmatrix_field &Tmp, mdp_nmatrix_field &S, float c1, float c2) {
 
-   site x(W1.lattice());
-   int N=W1.nc;
+   site x(W.lattice());
+   int N=W.nc;
    int mu;
    int k;
    int expn=8;
    mdp_matrix Omega, Q, Qn, expQ;
 
-   load_staples_alldirs(W1, S);
+   load_staples_alldirs(W, S);
 
-   for(mu=0; mu<W1.ndim; mu++) {
+   for(mu=0; mu<W.ndim; mu++) {
       forallsites(x) {
 	 //	 cout << "S["<<x<<","<<mu<<"]\n" << S(x,mu) <<endl;
 
-	 /* Update the accumulation matrix A += c1*proj(U*S) */
-	 /*
-	 mult_su3_na( U, &(s->staple[dir]), &tempS1 );
-	 anti_hermitian_traceless_proj( &tempS1, &tempA1 );
-	 scalar_mult_add_ah( Acur, &tempA1, c1, Acur );
-	 */
-	 /* Update the links U = exp(c2*A)*U */
-	 /*
-	 scalar_mult_ah( Acur, c2, &tempA1 );
-	 exp_anti_hermitian( &tempA1, &tempS1, exp_order );
-	 mult_su3_nn( &tempS1, U, &tempS2 );
-	 su3mat_copy( &tempS2, U );
-	 */
+	 Omega = W(x,mu) * S(x,mu); // MILC staple is Herm.Conj. of ours.
 
-	 Omega = W1(x,mu) * S(x,mu); // MILC staple is Herm.Conj. of ours.
+	 //	 cout<<"Omega: "<< x <<":"<< mu <<endl;
+	 //	 cout<< Omega <<endl;
+
+
 	 //	 Q = I*(hermitian(Omega) - Omega)/2 - I*trace(hermitian(Omega) - Omega)/2/N;
-	 Q = (hermitian(Omega) - Omega)/2 - trace(hermitian(Omega) - Omega)/2/N;
-	 Tmp(x) += c1 * Q;
 
-	 // build expQ
+	 Q = (Omega - hermitian(Omega))/2 - trace(Omega - hermitian(Omega))/2/N;
+	 //	 cout<<"Q: "<< x <<":"<< mu <<endl;
+	 //	 cout<< Q <<endl;
+
+	 // Tmp(x,mu) = MILC Acum field
+	 Tmp(x,mu) += c1*Q;
+	 //	 cout<<"Tmp: "<< x <<":"<< mu <<endl;
+	 //	 cout<< Tmp(x,mu) <<endl;
+
+	 // build exp(c2*Tmp)
+	 /**/
 	 expQ = mdp_identity(N);
 	 Qn = mdp_identity(N);
 	 for(k=1; k<=expn; k++) {
-	    Qn = I*c2*Q*Qn/k;
+	    Qn = c2*Tmp(x,mu)*Qn/k;
 	    expQ += Qn;
 	 }
-	 //	 expQ = exp(I*c2*Q);
-	 W1(x,mu) = expQ*W1(x,mu); 
+	 /**/
+	 //	 expQ = exp(c2*Tmp(x,mu));
+	 //	 cout<<"expQ: "<< x <<":"<< mu <<endl;
+	 //	 cout<< expQ <<endl;
+	 
+	 W(x,mu) = expQ*W(x,mu); 
       }
    }
-   //   W1.update();
+   //   W.update();
 }
 
 	    
-// Wilson flows W1 with timestep t  
-void wilsonFlow_RK(gauge_field &W1, mdp_matrix_field &Tmp,  mdp_nmatrix_field &S, float t) {
+// Wilson flows W with timestep t  
+void wilsonFlow_RK(gauge_field &W, mdp_nmatrix_field &Tmp,  mdp_nmatrix_field &S, float t) {
 
-   site x(W1.lattice());
-   mdp_matrix Zeero=mdp_zero(W1.nc);
+   site x(W.lattice());
+   mdp_matrix Zero=mdp_zero(W.nc);
+   int mu;
 
-   forallsites(x) { Tmp(x) = Zeero; }
-   stoutSmear(W1, Tmp, S, 17./36*t, -9./17);
-   stoutSmear(W1, Tmp, S, -8./9*t, 1);
-   stoutSmear(W1, Tmp, S,  3./4*t, -1);
+   for(mu=0;mu<W.ndim;mu++) forallsites(x) { Tmp(x,mu) = Zero; }
+   stoutSmear(W, Tmp, S, 17./36*t, -9./17);
+   stoutSmear(W, Tmp, S, -8./9*t, 1);
+   stoutSmear(W, Tmp, S,  3./4*t, -1);
 
 }
