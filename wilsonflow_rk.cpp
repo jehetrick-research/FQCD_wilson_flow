@@ -32,7 +32,7 @@ int load_staples_alldirs(gauge_field &W, mdp_nmatrix_field &S) {
 	 }
 	 S(x,dir) = staple;
       }
-      //      S.update();
+      S.update();
    }
    return 0;
 }
@@ -41,6 +41,8 @@ int load_staples_alldirs(gauge_field &W, mdp_nmatrix_field &S) {
 
 // Stout Smearing, a la MILC
 // Tmp is an "accumulator field for the AH projection
+//
+// the Tmp and S fields are 4-D vector fields: Tmp[4] and S[4]
 //
 void stoutSmear(gauge_field &W, mdp_nmatrix_field &Tmp, mdp_nmatrix_field &S, float c1, float c2) {
 
@@ -55,7 +57,7 @@ void stoutSmear(gauge_field &W, mdp_nmatrix_field &Tmp, mdp_nmatrix_field &S, fl
 
    for(mu=0; mu<W.ndim; mu++) {
       forallsites(x) {
-	 //	 cout << "S["<<x<<","<<mu<<"]\n" << S(x,mu) <<endl;
+	 // 	 cout << "S["<<x<<","<<mu<<"]\n" << S(x,mu) <<endl;
 
 	 Omega = W(x,mu) * S(x,mu); // MILC staple is Herm.Conj. of ours.
 
@@ -90,7 +92,7 @@ void stoutSmear(gauge_field &W, mdp_nmatrix_field &Tmp, mdp_nmatrix_field &S, fl
 	 W(x,mu) = expQ*W(x,mu); 
       }
    }
-   //   W.update();
+   W.update();
 }
 
 	    
@@ -102,8 +104,12 @@ void wilsonFlow_RK(gauge_field &W, mdp_nmatrix_field &Tmp,  mdp_nmatrix_field &S
    int mu;
 
    for(mu=0;mu<W.ndim;mu++) forallsites(x) { Tmp(x,mu) = Zero; }
+   //   cout <<"Starting RK Steps"<<endl;
    stoutSmear(W, Tmp, S, 17./36*t, -9./17);
+   //   cout <<"did 17/36, -9/17 RK step"<<endl;
    stoutSmear(W, Tmp, S, -8./9*t, 1);
+   //   cout <<"did -8/9, 1 RK step"<<endl;
    stoutSmear(W, Tmp, S,  3./4*t, -1);
+   //   cout <<"did 3/4, -1 RK step"<<endl;
 
 }

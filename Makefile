@@ -27,6 +27,9 @@ pureSUN:: pureSUN.cpp ploop3.cpp
 pureSUNwf_rk:: pureSUNwf_rk.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp
 	${CC} ${CFLAGS} pureSUNwf_rk.cpp -o pureSUNwf_rk
 
+pureSUNwflow:: pureSUNwflow.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp
+	${CC} ${CFLAGS} pureSUNwflow.cpp -o pureSUNwflow
+
 
 # Heat bath SU(N) with Wilson flow
 pureSUNwf:: pureSUNwf.cpp ploop3.cpp wilsonflow.cpp

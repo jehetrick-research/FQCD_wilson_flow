@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   int saveformat=0; // JH style
   float wf_t=0.05, wf_T=0, wf_Tmax=0, wf_savestep=0;
   int wf_expn=6;
-
+  int UPDATEOFF=0;
 
 
   // //////////////////////////////
@@ -60,6 +60,7 @@ int main(int argc, char** argv) {
     else if(strncmp(argv[i],"-output",7)==0)  sscanf(argv[i+1],"%s",output);
     else if(strncmp(argv[i],"-warms",6)==0)   sscanf(argv[i+1],"%i",&warms);  
     else if(strncmp(argv[i],"-trajecs",8)==0) sscanf(argv[i+1],"%i",&trajecs);  
+    else if(strncmp(argv[i],"-updateOFF",10)==0) UPDATEOFF=1;
     else if(strncmp(argv[i],"-meas",5)==0)    sscanf(argv[i+1],"%i",&meas);  
     else if(strncmp(argv[i],"-nc",3)==0)      sscanf(argv[i+1],"%i",&nc);
     else if(strncmp(argv[i],"-steps",6)==0)   sscanf(argv[i+1],"%i",&steps);
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
        mdp << "\t-beta [6.0]\t\t \"beta coupling\"\n";
        mdp << "\t-warms [0]\t\t \"number of warm-up (equilibration) sweeps\n";
        mdp << "\t-trajecs [1]\t\t \"number of \'production\' sweeps\"\n";
+       mdp << "\t-updateOFF [0]\t\t \"No updates in trajectory loop\"\n";
        mdp << "\t-meas [1]\t\t \"trajecs between measurements\"\n";
        mdp << "\t-nc [3]\t\t\t \"number of colors: N of SU(N)\"\n";
        mdp << "\n===Initialization:\n";
@@ -188,6 +190,7 @@ int main(int argc, char** argv) {
      cout <<"beta "<< beta <<endl;
      cout <<"warms "<< warms <<endl;
      cout <<"trajecs "<< trajecs <<endl;
+     if(UPDATEOFF==1) cout << "Updates are OFF" << endl;
      cout <<"meas "<< meas <<endl;
      cout <<"seed "<< seed <<endl;
      cout <<"input/output "<< input <<"/"<< output <<endl;
@@ -231,6 +234,12 @@ int main(int argc, char** argv) {
 
 
   // Thermalize ///////////////////////////////////////////
+  if((UPDATEOFF==1)&&(warms>0)) {
+     if(ME==0) {
+	cout << "UPDATEOFF=1 (updates are OFF) -and- warms>0" << endl;
+     }
+     exit(1);
+  }
   for(i=0; i<warms; i++) {
      WilsonGaugeAction::heatbath(U,gauge,1); //heatbath 
   }
@@ -249,7 +258,7 @@ int main(int argc, char** argv) {
   // Do the measurement trajectories ////////////////////
   ///////////////////////////////////////////////////////
   for(i=1; i<=trajecs; i++) {
-     WilsonGaugeAction::heatbath(U,gauge,1); //heatbath 
+     if(UPDATEOFF!=1) WilsonGaugeAction::heatbath(U,gauge,1); //heatbath 
      //     if(ME==0) cout << "update" << endl;
      
      // Measurements ////////////////////////////////////
@@ -281,13 +290,17 @@ int main(int argc, char** argv) {
 
 	// Wilson Flow module
 	if(wf_Tmax > 0) { if(ME==0) { cout<<"Starting Wilson Flow Module"<<endl; }}
+	if(ME==0) {
+	   cout<<"WFFMT beta wf_T plaq T^2*(2*(1-plaq))"<< endl;
+	}
 	forallsites(x) for(mu=0; mu<W.ndim; mu++) { W(x,mu) = U(x,mu); }
 	while((wf_Tmax > 0) && (wf_T <= wf_Tmax)) {
 	   wilsonFlow_RK(W, AccumRK, S, wf_t);
 	   wf_T += wf_t;
 
 	   plaq = average_plaquette(W);
-	   if(ME==0) { cout <<"WF_MEAS "<< beta <<" "<< wf_T <<" "<< plaq <<endl; }
+	   if(ME==0) { cout <<"WF_MEAS "<< beta <<" "<< wf_T <<" "<< plaq 
+			    <<" "<< wf_T*wf_T*2*(1-plaq) <<endl; }
 
 	   // Save W(x,mm) lattice every 'wf_savestep' in wf_T
 	   if((wf_savestep>0) && (fabs(fmod(wf_T, wf_savestep))<1e-6)) {
@@ -310,6 +323,11 @@ int main(int argc, char** argv) {
 
      } // end MEASurement
   } // end trajecs
+
+
+  // Output lattice //////////////////////////////////////
+  if(string(output)!="") U.save(output);      // save file
+
 
 
   // Shutdown gracefully /////////////////////////////////
