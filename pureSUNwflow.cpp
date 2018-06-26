@@ -3,6 +3,7 @@
 #include "ploop3.cpp"
 #include "wilsonflow_rk.cpp"
 #include "readmilcascii.cpp"
+#include "field_strength.cpp"
 
 // for KH's lattice output format
 #include <ctime>
@@ -41,6 +42,7 @@ int main(int argc, char** argv) {
   float wf_t=0.05, wf_T=0, wf_Tmax=0, wf_savestep=0;
   int wf_expn=6;
   int UPDATEOFF=0;
+  double Espace, Etime, topoQ;
 
 
   // //////////////////////////////
@@ -288,20 +290,32 @@ int main(int argc, char** argv) {
 
 	
 
-	// Wilson Flow module
-	if(wf_Tmax > 0) { if(ME==0) { cout<<"Starting Wilson Flow Module"<<endl; }}
-	if(ME==0) {
-	   cout<<"WFFMT beta wf_T plaq T^2*(2*(1-plaq))"<< endl;
+	// Wilson Flow module //////////////////////////
+	if(wf_Tmax > 0) {
+	   if(ME==0) {
+	      cout<<"Starting Wilson Flow Module"<<endl;
+	      cout<<"WFFMT beta wf_T plaq Es Et Q T^2*(Es+Et)"
+		  << endl;
+	   }
+	   forallsites(x) {
+	      for(mu=0; mu<W.ndim; mu++) W(x,mu) = U(x,mu);
+	   }
 	}
-	forallsites(x) for(mu=0; mu<W.ndim; mu++) { W(x,mu) = U(x,mu); }
 	while((wf_Tmax > 0) && (wf_T <= wf_Tmax)) {
+	   W.update();
 	   wilsonFlow_RK(W, AccumRK, S, wf_t);
 	   wf_T += wf_t;
 
+	   // WFLOW Measurements /////////////////
 	   plaq = average_plaquette(W);
-	   if(ME==0) { cout <<"WF_MEAS "<< beta <<" "<< wf_T <<" "<< plaq 
-			    <<" "<< wf_T*wf_T*2*(1-plaq) <<endl; }
+	   em_field_strength(W, &Espace, &Etime, &topoQ);
 
+
+	   if(ME==0) { cout <<"WFLOW "<< beta <<" "<< wf_T <<" "<< plaq 
+			    <<" "<< Espace <<" "<< Etime <<" "<< topoQ
+			    <<" "<< wf_T*wf_T*32*(1-plaq) <<endl; }
+	   
+	   // Wilson Flow SAVES //////////////////
 	   // Save W(x,mm) lattice every 'wf_savestep' in wf_T
 	   if((wf_savestep>0) && (fabs(fmod(wf_T, wf_savestep))<1e-6)) {
 	      if(strlen(output)==0) { sprintf(output,"fqcdlattice"); }

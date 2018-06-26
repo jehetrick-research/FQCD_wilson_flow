@@ -77,15 +77,15 @@ void stoutSmear(gauge_field &W, mdp_nmatrix_field &Tmp, mdp_nmatrix_field &S, fl
 	 //	 cout<< Tmp(x,mu) <<endl;
 
 	 // build exp(c2*Tmp)
-	 /**/
+	 /**
 	 expQ = mdp_identity(N);
 	 Qn = mdp_identity(N);
 	 for(k=1; k<=expn; k++) {
 	    Qn = c2*Tmp(x,mu)*Qn/k;
 	    expQ += Qn;
 	 }
-	 /**/
-	 //	 expQ = exp(c2*Tmp(x,mu));
+	 **/
+	 expQ = exp(c2*Tmp(x,mu));
 	 //	 cout<<"expQ: "<< x <<":"<< mu <<endl;
 	 //	 cout<< expQ <<endl;
 	 

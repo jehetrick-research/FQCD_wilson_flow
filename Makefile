@@ -27,7 +27,7 @@ pureSUN:: pureSUN.cpp ploop3.cpp
 pureSUNwf_rk:: pureSUNwf_rk.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp
 	${CC} ${CFLAGS} pureSUNwf_rk.cpp -o pureSUNwf_rk
 
-pureSUNwflow:: pureSUNwflow.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp
+pureSUNwflow:: pureSUNwflow.cpp ploop3.cpp wilsonflow_rk.cpp readmilcascii.cpp $(wildcard ../Libraries/*) field_strength.cpp
 	${CC} ${CFLAGS} pureSUNwflow.cpp -o pureSUNwflow
 
 
